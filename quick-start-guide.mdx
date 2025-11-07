@@ -1,0 +1,312 @@
+---
+title: Quick Start Guide
+description: 'Get started with DevEntry Job Tracker API in 5 minutes'
+---
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+<Check>A Gmail account with job application emails</Check>
+<Check>An HTTP client (cURL, Postman, or code)</Check>
+<Check>5 minutes of your time</Check>
+
+## Step 1: Authenticate with Gmail
+
+First, you need to connect your Gmail account via OAuth.
+
+<Warning>
+  **Important**: You must complete OAuth authentication before creating API keys. The API key creation endpoint requires an active session cookie from the OAuth flow.
+</Warning>
+
+### Start OAuth Flow
+
+Open this URL in your browser, replacing `your@email.com` with your actual email:
+
+```bash
+http://localhost:8000/login?user_id=your@email.com
+```
+
+<Steps>
+  <Step title="Click the Login Link">
+    You'll be redirected to Google's OAuth consent screen
+  </Step>
+  <Step title="Grant Permissions">
+    Authorize DevEntry to read your Gmail messages
+  </Step>
+  <Step title="Get Redirected">
+    After approval, you'll be redirected back with a success message
+  </Step>
+</Steps>
+
+### Verify Connection
+
+Check if your Gmail is connected:
+
+```bash
+curl -X GET 'http://localhost:8000/gmail/connection_status' \
+  --cookie "session=YOUR_SESSION_COOKIE"
+```
+
+<ResponseExample>
+```json
+{
+  "connected": true,
+  "user_id": "your@email.com"
+}
+```
+</ResponseExample>
+
+## Step 2: Create an API Key
+
+Now that you're authenticated, create an API key with your desired pricing tier.
+
+<Info>
+  **Session Required**: Make sure to include the session cookie from the OAuth flow. In browsers, this is handled automatically.
+</Info>
+
+### Choose a Pricing Tier
+
+First, check available pricing tiers:
+
+```bash
+curl -X GET 'http://localhost:8000/api-keys/pricing/tiers'
+```
+
+<ResponseExample>
+```json
+{
+  "tiers": {
+    "free": {
+      "name": "Free Trial",
+      "price_usd": 0,
+      "requests_per_month": 3000,
+      "requests_per_hour": 100
+    },
+    "basic": {
+      "name": "Basic",
+      "price_usd": 5,
+      "requests_per_month": 12000,
+      "requests_per_hour": 400
+    },
+    "pro": {
+      "name": "Pro",
+      "price_usd": 15,
+      "requests_per_month": 60000,
+      "requests_per_hour": 1000
+    },
+    "business": {
+      "name": "Business",
+      "price_usd": 49,
+      "requests_per_month": 300000,
+      "requests_per_hour": 4000
+    }
+  }
+}
+```
+</ResponseExample>
+
+### Create Your Key
+
+```bash
+curl -X POST 'http://localhost:8000/api-keys?user_id=your@email.com' \
+  -H 'Content-Type: application/json' \
+  --cookie "session=YOUR_SESSION_COOKIE" \
+  -d '{
+    "pricing_tier": "free"
+  }'
+```
+
+<ResponseExample>
+```json
+{
+  "api_key": "deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+  "key_prefix": "deventry_a1b2c3d4",
+  "user_id": "your@email.com",
+  "pricing_tier": "free",
+  "created_at": "2025-11-06T10:30:00.000000Z",
+  "warning": "Store this key securely. It won't be shown again."
+}
+```
+</ResponseExample>
+
+<Warning>
+  **Save Your API Key**: The full API key is only shown once. Store it securely - you'll need it for all subsequent requests.
+</Warning>
+
+## Step 3: Sync Your Job Applications
+
+Trigger a sync to fetch and analyze emails from the last 24 hours.
+
+```bash
+curl -X GET 'http://localhost:8000/v2/sync' \
+  -H 'X-API-Key: deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+```
+
+<Info>
+  **Real-time Updates**: This endpoint uses Server-Sent Events (SSE) to stream progress updates. You'll see stage messages like:
+  - "Connecting to your Gmail account..."
+  - "Searching for emails from the last 24 hours..."
+  - "Screening email 1/10: Application Update from TechCorp..."
+  - "Analyzing application 1/5: TechCorp - Software Engineer..."
+  - "Sync complete!"
+</Info>
+
+<CodeGroup>
+```bash cURL
+curl -X GET 'http://localhost:8000/v2/sync' \
+  -H 'X-API-Key: YOUR_API_KEY' \
+  -N  # Keep connection open for SSE
+```
+
+```python Python
+import requests
+
+headers = {'X-API-Key': 'YOUR_API_KEY'}
+response = requests.get(
+    'http://localhost:8000/v2/sync',
+    headers=headers,
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        print(line.decode('utf-8'))
+```
+
+```javascript JavaScript
+const eventSource = new EventSource(
+  'http://localhost:8000/v2/sync',
+  {
+    headers: {
+      'X-API-Key': 'YOUR_API_KEY'
+    }
+  }
+);
+
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data.stage_message);
+};
+```
+</CodeGroup>
+
+## Step 4: Retrieve Your Job Board
+
+After the sync completes, fetch your organized job applications.
+
+```bash
+curl -X GET 'http://localhost:8000/v2/jobs' \
+  -H 'X-API-Key: deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+```
+
+<ResponseExample>
+```json
+{
+  "jobs": {
+    "Applied": [
+      {
+        "company_name": "TechCorp Inc.",
+        "role": "Software Engineer",
+        "status": "Applied",
+        "email_date": "2025-11-05T14:30:00Z",
+        "subject": "Application Received: Software Engineer Position",
+        "from": "careers@techcorp.com",
+        "snippet": "Thank you for applying...",
+        "id": "18c2f1a2b3c4d5e6"
+      }
+    ],
+    "Recruiter Replied": [],
+    "Interviewing": [
+      {
+        "company_name": "StartupXYZ",
+        "role": "Full Stack Developer",
+        "status": "Interviewing",
+        "email_date": "2025-11-06T09:15:00Z",
+        "subject": "Interview Invitation - Full Stack Developer",
+        "from": "hr@startupxyz.com"
+      }
+    ],
+    "Selected": [],
+    "Not Selected": []
+  },
+  "total": 2,
+  "last_updated": "2025-11-06T10:35:00.000000Z"
+}
+```
+</ResponseExample>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Authentication"
+    icon="shield"
+    href="/authentication"
+  >
+    Learn about OAuth flow and API key security
+  </Card>
+  <Card
+    title="Pricing & Rate Limits"
+    icon="gauge"
+    href="/pricing-and-rate-limits"
+  >
+    Understand rate limits and upgrade options
+  </Card>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference"
+  >
+    Explore all available endpoints
+  </Card>
+  <Card
+    title="Usage Statistics"
+    icon="chart-line"
+    href="/api-reference/api-keys/get-usage-stats"
+  >
+    Monitor your API usage and quotas
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Gmail not connecting?">
+    - Make sure you completed the OAuth flow in a browser
+    - Check that you granted all requested permissions
+    - Try disconnecting and reconnecting: `DELETE /gmail/disconnect`
+  </Accordion>
+
+  <Accordion title="401 Unauthorized when creating API key?">
+    - You must complete OAuth authentication first
+    - Make sure you're including the session cookie
+    - Session cookies are automatically handled in browsers
+  </Accordion>
+
+  <Accordion title="No jobs found after sync?">
+    - The API only looks at emails from the last 24 hours
+    - Make sure you have job-related emails in that timeframe
+    - Check Gmail connection status: `GET /v2/gmail/status`
+  </Accordion>
+
+  <Accordion title="Rate limit errors?">
+    - Free tier: 100 requests/hour, 3,000/month
+    - Check your usage: `GET /api-keys/{prefix}/usage`
+    - Consider upgrading to a higher tier
+  </Accordion>
+</AccordionGroup>
+
+## Pro Tips
+
+<Tip>
+  **Sync Frequency**: Run syncs once per day to stay within rate limits and avoid reprocessing the same emails.
+</Tip>
+
+<Tip>
+  **Multiple API Keys**: Create separate keys for different applications or environments (dev, staging, production).
+</Tip>
+
+<Tip>
+  **Monitor Usage**: Regularly check usage statistics to avoid hitting rate limits unexpectedly.
+</Tip>

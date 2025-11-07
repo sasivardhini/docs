@@ -1,0 +1,147 @@
+---
+title: Introduction
+description: 'Welcome to the DevEntry Job Tracker API - AI-powered job application tracking with Gmail integration'
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="DevEntry Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="DevEntry Hero Dark"
+/>
+
+## What is DevEntry Job Tracker?
+
+DevEntry Job Tracker is an **AI-powered API** that automatically tracks your job applications by analyzing your Gmail inbox. Using **Gemini 2.5 Flash** AI, it intelligently classifies job-related emails and organizes them into a comprehensive job board.
+
+<CardGroup cols={2}>
+  <Card
+    title="Gmail Integration"
+    icon="envelope"
+    iconType="duotone"
+  >
+    Seamlessly connects to your Gmail via OAuth to fetch job-related emails
+  </Card>
+  <Card
+    title="AI Classification"
+    icon="brain"
+    iconType="duotone"
+  >
+    Powered by Gemini AI to accurately identify companies, roles, and application status
+  </Card>
+  <Card
+    title="Real-time Sync"
+    icon="arrows-rotate"
+    iconType="duotone"
+  >
+    Server-Sent Events (SSE) provide live progress updates during sync operations
+  </Card>
+  <Card
+    title="Smart Tracking"
+    icon="chart-line"
+    iconType="duotone"
+  >
+    Automatically organizes applications by status: Applied, Interviewing, Selected, etc.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="🔐 Secure OAuth Authentication">
+    - Google OAuth 2.0 integration for Gmail access
+    - Secure credential storage with automatic token refresh
+    - Session-based authentication for API key creation
+  </Accordion>
+
+  <Accordion title="🤖 AI-Powered Email Analysis">
+    - Gemini 2.5 Flash AI model for intelligent classification
+    - Extracts company names, job roles, and application status
+    - Filters out non-job-related emails automatically
+  </Accordion>
+
+  <Accordion title="📊 Job Status Tracking">
+    - **Applied**: Initial applications submitted
+    - **Recruiter Replied**: Companies that have responded
+    - **Interviewing**: Active interview processes
+    - **Selected**: Successful applications
+    - **Not Selected**: Rejected applications
+  </Accordion>
+
+  <Accordion title="⚡ Real-time Updates">
+    - Server-Sent Events (SSE) for live sync progress
+    - Stage-by-stage status messages during processing
+    - No polling required - events pushed to client
+  </Accordion>
+
+  <Accordion title="💾 Data Persistence">
+    - MongoDB backend for reliable data storage
+    - Deduplication to avoid reprocessing emails
+    - Historical tracking of all job applications
+  </Accordion>
+
+  <Accordion title="🔑 API Key Management">
+    - Create multiple API keys per user
+    - Usage tracking and statistics per key
+    - Easy revocation and rotation
+  </Accordion>
+</AccordionGroup>
+
+## How It Works
+
+<Steps>
+  <Step title="Connect Your Gmail">
+    Authenticate via Google OAuth to grant read-only access to your Gmail account
+  </Step>
+  <Step title="Create an API Key">
+    Generate a secure API key linked to your Gmail account and choose a pricing tier
+  </Step>
+  <Step title="Trigger a Sync">
+    Call the `/v2/sync` endpoint to fetch and analyze emails from the last 24 hours
+  </Step>
+  <Step title="Get Your Job Board">
+    Retrieve organized job applications via `/v2/jobs` grouped by application status
+  </Step>
+</Steps>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Job Seekers" icon="user">
+    Track all your applications in one place without manual data entry
+  </Card>
+  <Card title="Career Services" icon="building">
+    Monitor student job search progress at scale
+  </Card>
+  <Card title="Recruitment Analytics" icon="chart-bar">
+    Analyze job market trends and company response rates
+  </Card>
+  <Card title="Portfolio Projects" icon="rocket">
+    Build job tracking dashboards and Chrome extensions
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+- **Backend**: FastAPI (Python)
+- **AI Model**: Google Gemini 2.5 Flash
+- **Authentication**: Google OAuth 2.0
+- **Database**: MongoDB
+- **Email API**: Gmail API
+- **Streaming**: Server-Sent Events (SSE)
+
+## Getting Started
+
+Ready to start tracking your job applications? Check out our [Quick Start Guide](/quick-start-guide) to get up and running in minutes!
+
+<Card
+  title="Quick Start Guide"
+  icon="rocket"
+  href="/quick-start-guide"
+>
+  Get started with DevEntry in 5 minutes
+</Card>

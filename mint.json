@@ -1,0 +1,75 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "DevEntry Job Tracker API",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#4A90E2",
+    "light": "#8EC5FC",
+    "dark": "#1A1A2E",
+    "anchors": {
+      "from": "#4A90E2",
+      "to": "#8EC5FC"
+    }
+  },
+  "topbarCtaButton": {
+    "name": "View on GitHub",
+    "url": "https://github.com/your-repo"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quick-start-guide",
+        "authentication",
+        "pricing-and-rate-limits"
+      ]
+    },
+    {
+      "group": "Public Endpoints",
+      "pages": [
+        "api-reference/public/root",
+        "api-reference/public/health-check",
+        "api-reference/api-keys/get-pricing-tiers"
+      ]
+    },
+    {
+      "group": "OAuth Authentication",
+      "pages": [
+        "api-reference/auth/login",
+        "api-reference/auth/callback"
+      ]
+    },
+    {
+      "group": "API Key Management",
+      "pages": [
+        "api-reference/api-keys/create-api-key",
+        "api-reference/api-keys/list-api-keys",
+        "api-reference/api-keys/get-usage-stats",
+        "api-reference/api-keys/delete-api-key"
+      ]
+    },
+    {
+      "group": "Job Tracking",
+      "pages": [
+        "api-reference/jobs/get-all-jobs",
+        "api-reference/jobs/start-job-sync",
+        "api-reference/jobs/get-gmail-status",
+        "api-reference/jobs/disconnect-gmail"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/your-repo"
+  }
+}

@@ -1,0 +1,84 @@
+---
+title: 'API Information'
+openapi: 'GET /'
+---
+
+# Root Endpoint
+
+## GET /
+
+Public endpoint providing API overview and quick-start info.
+
+### Parameters
+
+None.
+
+### Response
+
+```json
+{
+  "message": "DevEntry Job Tracker API",
+  "version": "2.0",
+  "status": "operational",
+  "security": "🔒 All endpoints require API key authentication",
+  "documentation": {
+    "swagger": "/docs",
+    "redoc": "/redoc",
+    "pricing": "/api-keys/pricing/tiers"
+  },
+  "pricing_tiers": {
+    "free": {"price": 0, "requests_per_month": 3000, "requests_per_hour": 100},
+    "basic": {"price": 5, "requests_per_month": 12000, "requests_per_hour": 400},
+    "pro": {"price": 15, "requests_per_month": 60000, "requests_per_hour": 1000},
+    "business": {"price": 49, "requests_per_month": 300000, "requests_per_hour": 4000}
+  },
+  "rate_limiting": {
+    "type": "Two-tier (hourly + monthly)",
+    "headers": [
+      "X-RateLimit-Limit",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Monthly-Limit",
+      "X-RateLimit-Monthly-Remaining"
+    ],
+    "on_limit_exceeded": "HTTP 429 Too Many Requests"
+  },
+  "getting_started": {
+    "step_1": "Complete OAuth: GET /login?user_id=your@email.com",
+    "step_2": "Create API key: POST /api-keys?user_id=your@email.com with pricing_tier",
+    "step_3": "Use protected endpoints with header: X-API-Key: YOUR_KEY",
+    "step_4": "Monitor usage: GET /api-keys/{key_prefix}/usage"
+  },
+  "endpoints": {
+    "public": [
+      "GET /",
+      "GET /health",
+      "GET /api-keys/pricing/tiers"
+    ],
+    "oauth": [
+      "GET /login",
+      "GET /callback"
+    ],
+    "api_key_management": [
+      "POST /api-keys",
+      "GET /api-keys",
+      "GET /api-keys/{prefix}",
+      "GET /api-keys/{prefix}/usage",
+      "DELETE /api-keys/{prefix}"
+    ],
+    "protected_jobs": [
+      "GET /v2/jobs",
+      "GET /v2/sync",
+      "GET /v2/gmail/status",
+      "DELETE /v2/gmail/disconnect"
+    ],
+    "note": "All /v2/* endpoints require X-API-Key header"
+  },
+  "features": [
+    "Gmail OAuth integration",
+    "Gemini AI-powered email classification",
+    "Real-time sync with SSE",
+    "MongoDB persistence",
+    "Usage tracking & statistics",
+    "Tier-based rate limiting"
+  ]
+}

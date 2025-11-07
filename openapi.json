@@ -1,0 +1,931 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DevEntry Job Tracker API",
+    "version": "2.0",
+    "description": "## Gmail Classifier & Job Tracker API\n\n**AI-powered job application tracking with Gmail integration and Gemini AI classification.**\n\n### 🔐 Authentication\nAll protected endpoints require API key authentication via `X-API-Key` header.\n\n### 💰 Pricing Tiers\n- **Free Trial**: 3,000 requests/month (100 RPH) - $0/month\n- **Basic**: 12,000 requests/month (400 RPH) - $5/month\n- **Pro**: 60,000 requests/month (1,000 RPH) - $15/month\n- **Business**: 300,000 requests/month (4,000 RPH) - $49/month\n\n### 📊 Rate Limiting\n- **Hourly Limits**: Requests per hour enforced per tier (100-4,000 RPH)\n- **Monthly Quotas**: Tracked and enforced (3,000-300,000 req/month)\n- **Headers**: `X-RateLimit-*` headers show remaining quota\n\n### 🚀 Quick Start\n1. **OAuth Login**: GET `/login?user_id=your@email.com` (Required!)\n2. **Create API Key**: POST `/api-keys` with session cookie\n3. **Use API**: Include `X-API-Key` header in all requests\n\n**Note**: OAuth authentication is REQUIRED to create API keys.\n\n### 📧 Features\n- Gmail OAuth integration\n- AI-powered job email classification (Gemini 2.5 Flash)\n- Real-time sync with Server-Sent Events\n- MongoDB data persistence\n- Usage tracking and statistics",
+    "contact": {
+      "name": "API Support",
+      "url": "https://github.com/your-repo",
+      "email": "thesuriya3@gmail.com"
+    },
+    "license": {
+      "name": "MIT License"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.deventry.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Public",
+      "description": "Publicly accessible endpoints (no authentication required)"
+    },
+    {
+      "name": "OAuth",
+      "description": "Google OAuth authentication endpoints"
+    },
+    {
+      "name": "API Keys",
+      "description": "API key management endpoints (requires OAuth session)"
+    },
+    {
+      "name": "Jobs",
+      "description": "Protected job tracking endpoints (requires API key)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "API Information",
+        "description": "Returns API metadata, pricing tiers, rate limits, and getting started instructions. No authentication required.",
+        "operationId": "getRoot",
+        "responses": {
+          "200": {
+            "description": "Successful response with API information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "Health Check",
+        "description": "Health check endpoint for monitoring API status",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "get": {
+        "tags": ["OAuth"],
+        "summary": "Initiate OAuth Login",
+        "description": "Redirects to Google OAuth consent screen to authorize Gmail access. Required before creating API keys.",
+        "operationId": "oauthLogin",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "description": "User's email address",
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "example": "user@example.com"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth consent page"
+          },
+          "400": {
+            "description": "Missing user_id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/callback": {
+      "get": {
+        "tags": ["OAuth"],
+        "summary": "OAuth Callback",
+        "description": "OAuth callback endpoint (handled automatically by Google). Exchanges authorization code for access token and stores credentials.",
+        "operationId": "oauthCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "Authorization code from Google",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "description": "State parameter containing user_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth success, credentials stored"
+          },
+          "400": {
+            "description": "OAuth error or missing parameters"
+          }
+        }
+      }
+    },
+    "/gmail/connection_status": {
+      "get": {
+        "tags": ["OAuth"],
+        "summary": "Check Gmail Connection Status",
+        "description": "Checks if Gmail is connected for the current OAuth session",
+        "operationId": "gmailConnectionStatus",
+        "responses": {
+          "200": {
+            "description": "Connection status retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GmailConnectionStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in via OAuth"
+          }
+        }
+      }
+    },
+    "/gmail/disconnect": {
+      "delete": {
+        "tags": ["OAuth"],
+        "summary": "Disconnect Gmail",
+        "description": "Removes stored Gmail credentials for the current OAuth session",
+        "operationId": "gmailDisconnect",
+        "responses": {
+          "200": {
+            "description": "Gmail disconnected successfully"
+          },
+          "401": {
+            "description": "Not logged in via OAuth"
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create API Key",
+        "description": "Creates a new API key for the authenticated user. Requires active OAuth session.",
+        "operationId": "createApiKey",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "description": "User's email address (must match OAuth session)",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or missing OAuth session"
+          },
+          "401": {
+            "description": "Not authenticated via OAuth"
+          }
+        }
+      },
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List API Keys",
+        "description": "Lists all API keys for the authenticated user (OAuth session required)",
+        "operationId": "listApiKeys",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "description": "User's email address",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
+      }
+    },
+    "/api-keys/{prefix}": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get API Key Details",
+        "description": "Retrieves details for a specific API key by its prefix",
+        "operationId": "getApiKey",
+        "parameters": [
+          {
+            "name": "prefix",
+            "in": "path",
+            "required": true,
+            "description": "First 8 characters of the API key",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Revoke API Key",
+        "description": "Revokes (deletes) an API key. Requires OAuth session.",
+        "operationId": "revokeApiKey",
+        "parameters": [
+          {
+            "name": "prefix",
+            "in": "path",
+            "required": true,
+            "description": "First 8 characters of the API key",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key revoked successfully"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        }
+      }
+    },
+    "/api-keys/{prefix}/usage": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get API Key Usage Statistics",
+        "description": "Retrieves detailed usage statistics for an API key",
+        "operationId": "getApiKeyUsage",
+        "parameters": [
+          {
+            "name": "prefix",
+            "in": "path",
+            "required": true,
+            "description": "First 8 characters of the API key",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 8
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageStatistics"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        }
+      }
+    },
+    "/api-keys/pricing/tiers": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get Pricing Tiers",
+        "description": "Returns available pricing tiers and their limits. No authentication required.",
+        "operationId": "getPricingTiers",
+        "responses": {
+          "200": {
+            "description": "Pricing tiers information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingTiers"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/jobs": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Get Job Applications",
+        "description": "Retrieves all tracked job applications grouped by status. Requires API key authentication.",
+        "operationId": "getJobs",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job applications retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/sync": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Sync Job Applications (SSE)",
+        "description": "Triggers Gmail sync and streams real-time progress updates via Server-Sent Events. Requires API key authentication.",
+        "operationId": "syncJobs",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream of sync progress",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "data: {\"status\": \"processing\", \"stage_message\": \"Connecting to Gmail...\"}\n\n"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          },
+          "403": {
+            "description": "Gmail not connected"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/v2/gmail/status": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Check Gmail Connection (Protected)",
+        "description": "Checks Gmail connection status for the API key owner. Requires API key authentication.",
+        "operationId": "getGmailStatus",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gmail connection status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GmailConnectionStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          }
+        }
+      }
+    },
+    "/v2/gmail/disconnect": {
+      "delete": {
+        "tags": ["Jobs"],
+        "summary": "Disconnect Gmail (Protected)",
+        "description": "Disconnects Gmail for the API key owner. Requires API key authentication.",
+        "operationId": "disconnectGmail",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gmail disconnected successfully"
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for authentication. Format: `deventry_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`"
+      }
+    },
+    "schemas": {
+      "APIInfo": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "DevEntry Job Tracker API"
+          },
+          "version": {
+            "type": "string",
+            "example": "2.0"
+          },
+          "status": {
+            "type": "string",
+            "example": "operational"
+          },
+          "security": {
+            "type": "string"
+          },
+          "documentation": {
+            "type": "object",
+            "properties": {
+              "swagger": {
+                "type": "string",
+                "example": "/docs"
+              },
+              "redoc": {
+                "type": "string",
+                "example": "/redoc"
+              },
+              "pricing": {
+                "type": "string",
+                "example": "/api-keys/pricing/tiers"
+              }
+            }
+          },
+          "pricing_tiers": {
+            "type": "object"
+          },
+          "rate_limiting": {
+            "type": "object"
+          },
+          "getting_started": {
+            "type": "object"
+          },
+          "endpoints": {
+            "type": "object"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "HealthCheck": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "healthy"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-06T10:30:00.000000Z"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Missing required parameter"
+          }
+        }
+      },
+      "GmailConnectionStatus": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "example": true
+          },
+          "user_id": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          }
+        }
+      },
+      "CreateApiKeyRequest": {
+        "type": "object",
+        "required": ["pricing_tier"],
+        "properties": {
+          "pricing_tier": {
+            "type": "string",
+            "enum": ["free", "basic", "pro", "business"],
+            "example": "free",
+            "description": "Selected pricing tier"
+          }
+        }
+      },
+      "ApiKeyResponse": {
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "example": "deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+            "description": "Full API key (only shown once)"
+          },
+          "key_prefix": {
+            "type": "string",
+            "example": "deventry_",
+            "description": "First 8 characters for identification"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "pricing_tier": {
+            "type": "string",
+            "example": "free"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "warning": {
+            "type": "string",
+            "example": "Store this key securely. It won't be shown again."
+          }
+        }
+      },
+      "ApiKeyList": {
+        "type": "object",
+        "properties": {
+          "api_keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyDetails"
+            }
+          }
+        }
+      },
+      "ApiKeyDetails": {
+        "type": "object",
+        "properties": {
+          "key_prefix": {
+            "type": "string",
+            "example": "deventry_"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "email"
+          },
+          "pricing_tier": {
+            "type": "string",
+            "example": "free"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_used": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requests_this_month": {
+            "type": "integer",
+            "example": 150
+          },
+          "requests_this_hour": {
+            "type": "integer",
+            "example": 12
+          }
+        }
+      },
+      "UsageStatistics": {
+        "type": "object",
+        "properties": {
+          "key_prefix": {
+            "type": "string"
+          },
+          "pricing_tier": {
+            "type": "string"
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "hourly": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "remaining": {
+                    "type": "integer"
+                  },
+                  "reset_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "monthly": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "remaining": {
+                    "type": "integer"
+                  },
+                  "reset_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          },
+          "last_used": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PricingTiers": {
+        "type": "object",
+        "properties": {
+          "tiers": {
+            "type": "object",
+            "properties": {
+              "free": {
+                "$ref": "#/components/schemas/PricingTier"
+              },
+              "basic": {
+                "$ref": "#/components/schemas/PricingTier"
+              },
+              "pro": {
+                "$ref": "#/components/schemas/PricingTier"
+              },
+              "business": {
+                "$ref": "#/components/schemas/PricingTier"
+              }
+            }
+          }
+        }
+      },
+      "PricingTier": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Free Trial"
+          },
+          "price_usd": {
+            "type": "number",
+            "example": 0
+          },
+          "requests_per_month": {
+            "type": "integer",
+            "example": 3000
+          },
+          "requests_per_hour": {
+            "type": "integer",
+            "example": 100
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "JobsResponse": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "object",
+            "properties": {
+              "Applied": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobApplication"
+                }
+              },
+              "Recruiter Replied": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobApplication"
+                }
+              },
+              "Interviewing": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobApplication"
+                }
+              },
+              "Selected": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobApplication"
+                }
+              },
+              "Not Selected": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobApplication"
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 15
+          },
+          "last_updated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JobApplication": {
+        "type": "object",
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "example": "TechCorp Inc."
+          },
+          "role": {
+            "type": "string",
+            "example": "Software Engineer"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Applied", "Recruiter Replied", "Interviewing", "Selected", "Not Selected"],
+            "example": "Interviewing"
+          },
+          "email_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "email"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "description": "Gmail message ID"
+          }
+        }
+      },
+      "RateLimitError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Rate limit exceeded"
+          },
+          "limit_type": {
+            "type": "string",
+            "enum": ["hourly", "monthly"],
+            "example": "hourly"
+          },
+          "limit": {
+            "type": "integer",
+            "example": 100
+          },
+          "used": {
+            "type": "integer",
+            "example": 100
+          },
+          "reset_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

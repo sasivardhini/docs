@@ -1,0 +1,368 @@
+---
+title: Authentication
+description: 'Understanding OAuth and API key authentication in DevEntry'
+---
+
+## Authentication Overview
+
+DevEntry uses a **two-layer authentication system** for maximum security and flexibility:
+
+<CardGroup cols={2}>
+  <Card title="Layer 1: OAuth 2.0" icon="google">
+    Google OAuth for secure Gmail access and initial user verification
+  </Card>
+  <Card title="Layer 2: API Keys" icon="key">
+    Long-lived API keys for programmatic access to protected endpoints
+  </Card>
+</CardGroup>
+
+## OAuth 2.0 Flow
+
+OAuth is **required** to create API keys and connect your Gmail account.
+
+### How It Works
+
+<Steps>
+  <Step title="Initiate Login">
+    Navigate to `/login?user_id=your@email.com` in your browser
+  </Step>
+  <Step title="Google Consent">
+    Authorize DevEntry to read your Gmail messages (read-only access)
+  </Step>
+  <Step title="Callback & Token Exchange">
+    Google redirects back to `/callback` with authorization code
+  </Step>
+  <Step title="Credential Storage">
+    Access and refresh tokens are securely stored in MongoDB
+  </Step>
+  <Step title="Session Created">
+    A session cookie is set for API key creation
+  </Step>
+</Steps>
+
+### OAuth Endpoints
+
+#### Start OAuth Flow
+
+```bash
+GET /login?user_id=your@email.com
+```
+
+<ParamField query="user_id" type="string" required>
+  Your email address (must be a valid Gmail account)
+</ParamField>
+
+**Response**: 302 redirect to Google OAuth consent screen
+
+---
+
+#### OAuth Callback (Automatic)
+
+```bash
+GET /callback?code=AUTH_CODE&state=USER_ID
+```
+
+<Info>
+  This endpoint is called automatically by Google. You don't need to call it manually.
+</Info>
+
+---
+
+#### Check Connection Status
+
+```bash
+GET /gmail/connection_status
+```
+
+<Warning>
+  **Session Required**: You must include the session cookie from the OAuth flow.
+</Warning>
+
+<ResponseExample>
+```json
+{
+  "connected": true,
+  "user_id": "your@email.com"
+}
+```
+</ResponseExample>
+
+---
+
+#### Disconnect Gmail
+
+```bash
+DELETE /gmail/disconnect
+```
+
+Removes stored credentials and revokes access.
+
+<ResponseExample>
+```json
+{
+  "message": "Gmail disconnected successfully"
+}
+```
+</ResponseExample>
+
+## API Key Authentication
+
+After completing OAuth, you can create API keys for programmatic access.
+
+### Creating API Keys
+
+API keys are tied to your Gmail account and pricing tier.
+
+```bash
+POST /api-keys?user_id=your@email.com
+Content-Type: application/json
+Cookie: session=YOUR_SESSION_COOKIE
+
+{
+  "pricing_tier": "free"
+}
+```
+
+<ParamField body="pricing_tier" type="string" required>
+  Choose from: `free`, `basic`, `pro`, `business`
+</ParamField>
+
+<ResponseExample>
+```json
+{
+  "api_key": "deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+  "key_prefix": "deventry_a1b2c3d4",
+  "user_id": "your@email.com",
+  "pricing_tier": "free",
+  "created_at": "2025-11-06T10:30:00.000000Z",
+  "warning": "Store this key securely. It won't be shown again."
+}
+```
+</ResponseExample>
+
+### API Key Format
+
+All API keys follow this format:
+
+```
+deventry_[32 random characters]
+```
+
+Example: `deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6`
+
+### Using API Keys
+
+Include your API key in the `X-API-Key` header for all protected endpoints:
+
+<CodeGroup>
+```bash cURL
+curl -X GET 'http://localhost:8000/v2/jobs' \
+  -H 'X-API-Key: deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+```
+
+```python Python
+import requests
+
+headers = {
+    'X-API-Key': 'deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+}
+
+response = requests.get(
+    'http://localhost:8000/v2/jobs',
+    headers=headers
+)
+```
+
+```javascript JavaScript (Fetch)
+fetch('http://localhost:8000/v2/jobs', {
+  headers: {
+    'X-API-Key': 'deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+  }
+})
+.then(res => res.json())
+.then(data => console.log(data));
+```
+
+```javascript Node.js (Axios)
+const axios = require('axios');
+
+axios.get('http://localhost:8000/v2/jobs', {
+  headers: {
+    'X-API-Key': 'deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+  }
+});
+```
+</CodeGroup>
+
+## Protected Endpoints
+
+The following endpoints require API key authentication:
+
+<AccordionGroup>
+  <Accordion title="Job Tracking Endpoints">
+    - `GET /v2/jobs` - Get all tracked job applications
+    - `GET /v2/sync` - Trigger sync and stream progress
+    - `GET /v2/gmail/status` - Check Gmail connection
+    - `DELETE /v2/gmail/disconnect` - Disconnect Gmail
+  </Accordion>
+
+  <Accordion title="API Key Management">
+    - `GET /api-keys` - List your API keys
+    - `GET /api-keys/{prefix}` - Get specific key details
+    - `GET /api-keys/{prefix}/usage` - Get usage statistics
+    - `DELETE /api-keys/{prefix}` - Revoke an API key
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<Warning>
+  **Never share your API keys or commit them to version control!**
+</Warning>
+
+### Do's ✅
+
+<Check>Store API keys in environment variables</Check>
+<Check>Use different keys for dev/staging/production</Check>
+<Check>Rotate keys regularly (every 90 days recommended)</Check>
+<Check>Monitor usage for suspicious activity</Check>
+<Check>Revoke keys immediately if compromised</Check>
+
+### Don'ts ❌
+
+<Steps>
+  <Step icon="x">
+    **Don't** hardcode keys in your application code
+  </Step>
+  <Step icon="x">
+    **Don't** commit keys to Git repositories
+  </Step>
+  <Step icon="x">
+    **Don't** share keys via email or chat
+  </Step>
+  <Step icon="x">
+    **Don't** use the same key across multiple projects
+  </Step>
+  <Step icon="x">
+    **Don't** expose keys in client-side JavaScript
+  </Step>
+</Steps>
+
+## Environment Variables
+
+Store your API key securely using environment variables:
+
+<CodeGroup>
+```bash .env
+DEVENTRY_API_KEY=deventry_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+DEVENTRY_API_URL=http://localhost:8000
+```
+
+```python Python (.env)
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+api_key = os.getenv('DEVENTRY_API_KEY')
+```
+
+```javascript Node.js (.env)
+require('dotenv').config();
+const apiKey = process.env.DEVENTRY_API_KEY;
+```
+</CodeGroup>
+
+## Token Refresh
+
+<Info>
+  **Automatic Refresh**: OAuth tokens are automatically refreshed when expired. No action required!
+</Info>
+
+DevEntry handles token refresh automatically:
+- Access tokens expire after 1 hour
+- Refresh tokens are used to obtain new access tokens
+- Process is transparent to API key users
+
+## Error Responses
+
+### 401 Unauthorized
+
+Missing or invalid API key:
+
+```json
+{
+  "detail": "Missing API key. Include X-API-Key header."
+}
+```
+
+### 403 Forbidden
+
+Valid key but insufficient permissions:
+
+```json
+{
+  "detail": "Gmail not connected. Please complete OAuth flow first."
+}
+```
+
+### 429 Too Many Requests
+
+Rate limit exceeded:
+
+```json
+{
+  "detail": "Rate limit exceeded",
+  "limit_type": "hourly",
+  "limit": 100,
+  "used": 100,
+  "reset_at": "2025-11-06T11:00:00Z"
+}
+```
+
+## Managing Multiple Keys
+
+You can create multiple API keys per Gmail account:
+
+```bash
+# List all your keys
+curl -X GET 'http://localhost:8000/api-keys?user_id=your@email.com' \
+  --cookie "session=YOUR_SESSION_COOKIE"
+```
+
+<ResponseExample>
+```json
+{
+  "api_keys": [
+    {
+      "key_prefix": "deventry_a1b2c3d4",
+      "pricing_tier": "free",
+      "created_at": "2025-11-01T10:00:00Z",
+      "last_used": "2025-11-06T09:30:00Z",
+      "requests_this_month": 150,
+      "requests_this_hour": 12
+    },
+    {
+      "key_prefix": "deventry_x9y8z7w6",
+      "pricing_tier": "pro",
+      "created_at": "2025-11-05T14:00:00Z",
+      "last_used": "2025-11-06T10:15:00Z",
+      "requests_this_month": 45,
+      "requests_this_hour": 5
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Revoking Keys
+
+Revoke compromised or unused keys:
+
+```bash
+curl -X DELETE 'http://localhost:8000/api-keys/deventry_a1b2c3d4' \
+  --cookie "session=YOUR_SESSION_COOKIE"
+```
+
+<Warning>
+  **Permanent Action**: Revoked keys cannot be restored. Update your applications before revoking active keys.
+</Warning>

@@ -1,0 +1,322 @@
+---
+title: Pricing & Rate Limits
+description: 'Understanding pricing tiers, rate limits, and usage quotas'
+---
+
+## Pricing Tiers
+
+DevEntry offers **4 pricing tiers** to suit different needs, from hobbyists to enterprises.
+
+<CardGroup cols={2}>
+  <Card title="Free Trial" icon="gift">
+    **$0/month**
+    - 3,000 requests/month
+    - 100 requests/hour
+    - Perfect for testing
+  </Card>
+  
+  <Card title="Basic" icon="rocket">
+    **$5/month**
+    - 12,000 requests/month
+    - 400 requests/hour
+    - Ideal for personal use
+  </Card>
+  
+  <Card title="Pro" icon="star">
+    **$15/month**
+    - 60,000 requests/month
+    - 1,000 requests/hour
+    - Great for power users
+  </Card>
+  
+  <Card title="Business" icon="building">
+    **$49/month**
+    - 300,000 requests/month
+    - 4,000 requests/hour
+    - For production apps
+  </Card>
+</CardGroup>
+
+## Detailed Comparison
+
+| Feature | Free | Basic | Pro | Business |
+|---------|------|-------|-----|----------|
+| **Monthly Requests** | 3,000 | 12,000 | 60,000 | 300,000 |
+| **Hourly Requests** | 100 | 400 | 1,000 | 4,000 |
+| **Price** | $0 | $5 | $15 | $49 |
+| **Gmail Integration** | ✅ | ✅ | ✅ | ✅ |
+| **AI Classification** | ✅ | ✅ | ✅ | ✅ |
+| **Real-time Sync (SSE)** | ✅ | ✅ | ✅ | ✅ |
+| **Usage Analytics** | ✅ | ✅ | ✅ | ✅ |
+| **Multiple API Keys** | ✅ | ✅ | ✅ | ✅ |
+| **Support** | Community | Email | Priority | Dedicated |
+| **Best For** | Testing | Personal | Power Users | Production |
+
+## Rate Limiting
+
+DevEntry uses a **two-tier rate limiting system** to ensure fair usage and API stability.
+
+### How Rate Limits Work
+
+<AccordionGroup>
+  <Accordion title="Hourly Limits (Requests Per Hour)" icon="clock">
+    Prevents bursts of traffic that could overload the API.
+    
+    - **Free**: 100 requests/hour
+    - **Basic**: 400 requests/hour
+    - **Pro**: 1,000 requests/hour
+    - **Business**: 4,000 requests/hour
+    
+    Resets every hour at the top of the hour (e.g., 10:00, 11:00, etc.)
+  </Accordion>
+
+  <Accordion title="Monthly Limits (Requests Per Month)" icon="calendar">
+    Ensures sustained usage stays within tier limits.
+    
+    - **Free**: 3,000 requests/month
+    - **Basic**: 12,000 requests/month
+    - **Pro**: 60,000 requests/month
+    - **Business**: 300,000 requests/month
+    
+    Resets on the 1st of each month at 00:00 UTC
+  </Accordion>
+</AccordionGroup>
+
+### Rate Limit Headers
+
+Every API response includes rate limit information in the headers:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1699272000
+
+X-RateLimit-Monthly-Limit: 3000
+X-RateLimit-Monthly-Remaining: 2856
+X-RateLimit-Monthly-Reset: 1701388800
+```
+
+**Header Descriptions:**
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum hourly requests allowed |
+| `X-RateLimit-Remaining` | Remaining hourly requests |
+| `X-RateLimit-Reset` | Unix timestamp when hourly limit resets |
+| `X-RateLimit-Monthly-Limit` | Maximum monthly requests allowed |
+| `X-RateLimit-Monthly-Remaining` | Remaining monthly requests |
+| `X-RateLimit-Monthly-Reset` | Unix timestamp when monthly limit resets |
+
+### Rate Limit Exceeded Response
+
+When you exceed your rate limit, you'll receive a `429 Too Many Requests` response:
+
+```json
+{
+  "detail": "Rate limit exceeded",
+  "limit_type": "hourly",
+  "limit": 100,
+  "used": 100,
+  "reset_at": "2025-11-06T11:00:00Z"
+}
+```
+
+<Warning>
+  **Blocked Requests**: Once rate limited, all requests will be rejected until the limit resets. Plan your usage accordingly!
+</Warning>
+
+## Usage Monitoring
+
+Track your API usage in real-time to avoid hitting limits.
+
+### Check Usage Statistics
+
+```bash
+curl -X GET 'http://localhost:8000/api-keys/deventry_a1b2c3d4/usage' \
+  -H 'X-API-Key: YOUR_API_KEY'
+```
+
+<ResponseExample>
+```json
+{
+  "key_prefix": "deventry_a1b2c3d4",
+  "pricing_tier": "free",
+  "usage": {
+    "hourly": {
+      "used": 45,
+      "limit": 100,
+      "remaining": 55,
+      "reset_at": "2025-11-06T11:00:00Z"
+    },
+    "monthly": {
+      "used": 1250,
+      "limit": 3000,
+      "remaining": 1750,
+      "reset_at": "2025-12-01T00:00:00Z"
+    }
+  },
+  "last_used": "2025-11-06T10:45:23Z"
+}
+```
+</ResponseExample>
+
+### Usage Dashboard
+
+<Info>
+  Coming soon: Web dashboard for visualizing usage trends, setting alerts, and managing subscriptions.
+</Info>
+
+## Choosing the Right Tier
+
+### Free Trial - $0/month
+<Check>**Perfect if you:**</Check>
+- Are testing the API for the first time
+- Building a proof-of-concept
+- Have minimal job application tracking needs (1-2 syncs/day)
+- Want to try before upgrading
+
+**Typical Usage**: ~100 API calls = 1-2 syncs per day
+
+---
+
+### Basic - $5/month
+<Check>**Perfect if you:**</Check>
+- Are actively job hunting and tracking 10-20 applications
+- Need reliable daily syncs (4-5 per day)
+- Want stable personal use without worrying about limits
+- Are building a personal portfolio project
+
+**Typical Usage**: ~400 API calls = 4-5 syncs per day
+
+---
+
+### Pro - $15/month
+<Check>**Perfect if you:**</Check>
+- Are a power user tracking 50+ applications
+- Need frequent syncs throughout the day (10+ syncs/day)
+- Are building a Chrome extension or mobile app
+- Want headroom for future growth
+
+**Typical Usage**: ~2,000 API calls = 10-15 syncs per day
+
+---
+
+### Business - $49/month
+<Check>**Perfect if you:**</Check>
+- Are running a production application with multiple users
+- Need enterprise-grade reliability and support
+- Are building a SaaS product on top of DevEntry
+- Require dedicated support and SLA guarantees
+
+**Typical Usage**: ~10,000 API calls = distributed across users/apps
+
+## Cost Optimization Tips
+
+<Tip>
+  **Minimize Syncs**: Only sync when you receive new emails. Use webhooks or scheduled jobs instead of polling.
+</Tip>
+
+<Tip>
+  **Cache Data**: Store job data locally and only refresh when needed. Use `last_updated` timestamp to check for changes.
+</Tip>
+
+<Tip>
+  **Batch Operations**: If you need to check multiple users, batch your requests efficiently within rate limits.
+</Tip>
+
+<Tip>
+  **Monitor Usage**: Regularly check `/api-keys/{prefix}/usage` to avoid surprise rate limit hits.
+</Tip>
+
+## Upgrading Your Tier
+
+<Steps>
+  <Step title="Check Current Usage">
+    Review your usage statistics to determine if an upgrade is needed
+  </Step>
+  <Step title="Create New API Key">
+    Create a new API key with the desired pricing tier
+  </Step>
+  <Step title="Update Applications">
+    Replace the old API key in your applications with the new one
+  </Step>
+  <Step title="Revoke Old Key">
+    Optionally revoke the old API key after migration
+  </Step>
+</Steps>
+
+<Warning>
+  **No Automatic Upgrades**: You must create a new API key with the upgraded tier. Existing keys cannot be upgraded in-place.
+</Warning>
+
+## Fair Use Policy
+
+<AccordionGroup>
+  <Accordion title="Acceptable Use" icon="check">
+    ✅ Personal job application tracking
+    
+    ✅ Building portfolio projects and demos
+    
+    ✅ Creating Chrome extensions or mobile apps
+    
+    ✅ Integrating with career services platforms
+    
+    ✅ Academic research and educational use
+  </Accordion>
+
+  <Accordion title="Prohibited Use" icon="ban">
+    ❌ Scraping or harvesting email data beyond job applications
+    
+    ❌ Sharing API keys across multiple users/organizations
+    
+    ❌ Reselling API access without authorization
+    
+    ❌ Automated abuse or malicious traffic
+    
+    ❌ Bypassing rate limits through multiple accounts
+  </Accordion>
+</AccordionGroup>
+
+## Enterprise Plans
+
+Need more than 300,000 requests/month? Contact us for custom enterprise pricing:
+
+<Card
+  title="Contact Sales"
+  icon="envelope"
+  href="mailto:thesuriya3@gmail.com"
+>
+  Get custom rate limits, dedicated support, and SLA guarantees
+</Card>
+
+**Enterprise Features:**
+- Custom rate limits (500K+ requests/month)
+- Dedicated support team
+- 99.9% uptime SLA
+- Custom contract terms
+- Priority feature requests
+- Advanced analytics and reporting
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What counts as a request?">
+    Every API call to a protected endpoint (`/v2/*`) counts as one request. OAuth endpoints and public endpoints are not counted.
+  </Accordion>
+
+  <Accordion title="What happens if I exceed my monthly limit mid-month?">
+    All requests will be rejected with `429 Too Many Requests` until the 1st of the next month. Consider upgrading to avoid downtime.
+  </Accordion>
+
+  <Accordion title="Can I have multiple API keys with different tiers?">
+    Yes! Each API key can have its own pricing tier. This is useful for separating dev/prod environments or different projects.
+  </Accordion>
+
+  <Accordion title="Do unused requests roll over to the next month?">
+    No, unused requests do not roll over. Limits reset on the 1st of each month.
+  </Accordion>
+
+  <Accordion title="Can I downgrade my tier?">
+    Yes, simply create a new API key with the lower tier and update your applications. The old key remains active until revoked.
+  </Accordion>
+</AccordionGroup>
